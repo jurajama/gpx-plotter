@@ -246,6 +246,10 @@ function fitCamera() {
 }
 
 // ---------- Info panels ----------
+// Clock times are always shown in 24-hour format, whatever the browser locale.
+const TIME_FORMAT = { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' };
+const DATE_TIME_FORMAT = { year: 'numeric', month: 'numeric', day: 'numeric', ...TIME_FORMAT };
+
 function formatDuration(s) {
   s = Math.round(s);
   const h = Math.floor(s / 3600);
@@ -261,7 +265,7 @@ function escapeHtml(s) {
 function showInfo(gpx, filename) {
   const s = gpx.stats;
   const rows = [['Distance', `${(s.distance / 1000).toFixed(2)} km`]];
-  if (s.startTime !== null) rows.push(['Start', new Date(s.startTime).toLocaleString()]);
+  if (s.startTime !== null) rows.push(['Start', new Date(s.startTime).toLocaleString(undefined, DATE_TIME_FORMAT)]);
   if (s.duration !== null) {
     rows.push(['Duration', formatDuration(s.duration)]);
     if (s.distance > 0) {
@@ -306,8 +310,6 @@ const timeSlider = $('time-slider');
 const speedSelect = $('play-speed');
 const playback = { t: 0, playing: false };
 
-const timeFormat = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
-
 /** Move the marker to `t` seconds from the start and refresh the readout. */
 function setTime(t) {
   const track = current?.track;
@@ -315,7 +317,7 @@ function setTime(t) {
   playback.t = Math.min(track.duration, Math.max(0, t));
   const s = track.setPosition(playback.t);
   timeSlider.value = playback.t;
-  $('time-abs').textContent = new Date(s.time).toLocaleTimeString(undefined, timeFormat);
+  $('time-abs').textContent = new Date(s.time).toLocaleTimeString(undefined, TIME_FORMAT);
   $('time-rel').textContent = formatDuration(s.elapsed);
   $('time-dist').textContent = `${(s.dist / 1000).toFixed(2)} km`;
   $('time-speed').textContent = s.speed !== null ? `${s.speed.toFixed(1)} km/h` : '–';
