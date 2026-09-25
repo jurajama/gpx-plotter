@@ -21,7 +21,15 @@
     #info { top: 10px; left: 10px; max-width: 280px; }
     #info h1 { font-size: 14px; margin: 0 0 6px; overflow-wrap: anywhere; }
     #info th { text-align: left; font-weight: 500; color: #555; padding-right: 12px; }
-    #legend { bottom: 28px; left: 10px; width: 220px; }
+    #legend { bottom: 112px; left: 10px; width: 220px; }
+    #timeline { bottom: 28px; left: 10px; right: 70px; max-width: 900px; display: flex; flex-direction: column; gap: 6px; }
+    #timeline .row { display: flex; align-items: center; gap: 8px; }
+    #timeline button { font: inherit; min-width: 72px; padding: 4px 10px; cursor: pointer; }
+    #timeline button:disabled { cursor: default; opacity: 0.5; }
+    #time-slider { flex: 1; min-width: 80px; accent-color: #d08a00; }
+    #timeline .readout { display: flex; flex-wrap: wrap; gap: 4px 18px; font-variant-numeric: tabular-nums; }
+    #timeline .readout b { font-weight: 600; }
+    #timeline label { white-space: nowrap; }
     .legend-title { margin-bottom: 4px; }
     .legend-bar { height: 10px; border-radius: 3px; }
     .legend-labels { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
@@ -37,6 +45,13 @@
                  background: rgba(255, 255, 255, 0.85); }
     #drop button { font: inherit; padding: 6px 14px; margin-top: 10px; cursor: pointer; }
     body.dragging #viewport { outline: 4px dashed #4a7bd0; outline-offset: -8px; }
+    #notice { max-width: 440px; border: none; border-radius: 8px; padding: 18px 20px;
+              box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35); font: inherit; color: inherit; }
+    #notice::backdrop { background: rgba(0, 0, 0, 0.3); }
+    #notice h2 { font-size: 15px; margin: 0 0 10px; }
+    #notice p { margin: 0 0 10px; }
+    #notice form { text-align: right; margin: 0; }
+    #notice button { font: inherit; padding: 5px 18px; cursor: pointer; }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -53,6 +68,31 @@
 
   <div id="info" class="panel" hidden></div>
   <div id="legend" class="panel" hidden></div>
+  <div id="timeline" class="panel" hidden>
+    <div class="row">
+      <button id="play" title="Play (space)">▶ Play</button>
+      <button id="stop" title="Stop (space)" disabled>■ Stop</button>
+      <input id="time-slider" type="range" min="0" max="1" step="1" value="0" aria-label="Position in time">
+      <label>Speed
+        <select id="play-speed">
+          <option value="1">1×</option>
+          <option value="5">5×</option>
+          <option value="10">10×</option>
+          <option value="30">30×</option>
+          <option value="60" selected>60×</option>
+          <option value="120">120×</option>
+          <option value="300">300×</option>
+          <option value="600">600×</option>
+        </select>
+      </label>
+    </div>
+    <div class="readout">
+      <span>Time <b id="time-abs">–</b></span>
+      <span>Elapsed <b id="time-rel">–</b></span>
+      <span>Distance <b id="time-dist">–</b></span>
+      <span>Speed <b id="time-speed">–</b></span>
+    </div>
+  </div>
   <div id="status" class="panel" hidden></div>
   <div id="compass" title="North (click to reset view)">
     <svg viewBox="0 0 44 44">
@@ -61,6 +101,15 @@
     </svg>
   </div>
   <div id="attribution"></div>
+  <dialog id="notice">
+    <h2>No timestamps in this GPX file</h2>
+    <p><b id="notice-file"></b> was loaded and the route is shown on the map, but the file
+      contains no timestamps. Playback, clock and elapsed time, and speed information are
+      therefore not available.</p>
+    <p>To see time and speed information, export the workout in the
+      <b>“GPX workout”</b> format.</p>
+    <form method="dialog"><button autofocus>OK</button></form>
+  </dialog>
   <input id="file" type="file" accept=".gpx,application/gpx+xml" hidden>
 
   <script type="module" src="src/main.js"></script>

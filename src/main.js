@@ -50,7 +50,10 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 
+const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  if (playback.playing) advancePlayback(dt);
   controls.update();
   compassEl.style.transform = `rotate(${controls.getAzimuthalAngle()}rad)`;
   renderer.render(scene, camera);
@@ -86,7 +89,13 @@ mapFolder.add(settings, 'exaggeration', 1, 10, 0.1).name('Vertical exaggeration'
 mapFolder.add(settings, 'shaded').name('Hill shading').onChange((v) => current?.terrain.setShaded(v));
 mapFolder.add(settings, 'wireframe').name('Wireframe').onChange((v) => current?.terrain.setWireframe(v));
 const routeFolder = gui.addFolder('Route');
-routeFolder.add(settings, 'colorMode', COLOR_MODES).name('Colour by').onChange(() => updateTrack());
+// Colouring modes that need timestamps; hidden for GPX files without them.
+const TIME_COLOR_MODES = ['Speed', 'Elapsed time'];
+let preferredColorMode = settings.colorMode; // last mode the user picked
+const colorModeCtrl = routeFolder.add(settings, 'colorMode', COLOR_MODES).name('Colour by').onChange((v) => {
+  preferredColorMode = v;
+  updateTrack();
+});
 routeFolder.addColor(settings, 'solidColor').name('Solid colour').onChange(() => updateTrack());
 routeFolder.add(settings, 'lineWidth', 1, 12, 0.5).name('Line width (px)').onChange(() => updateTrack());
 routeFolder.add(settings, 'heightMode', ['Terrain', 'Recorded altitude']).name('Height from').onChange(() => updateTrack());
@@ -185,10 +194,13 @@ async function loadGpxText(text, filename) {
   scene.add(next.terrain.mesh, next.track.group);
   camera.far = next.size * 20;
   resize();
+  setColorModes(next.track.hasTime);
   updateTrack();
   fitCamera();
   showInfo(gpx, filename);
+  resetTimeline();
   dropEl.hidden = true;
+  if (!next.track.hasTime) showNoTimeNotice(filename);
 
   await applyMap();
 }
@@ -227,6 +239,7 @@ function updateTrack() {
   if (!current) return;
   const legend = current.track.update({ terrain: current.terrain, ...settings });
   showLegend(legend);
+  if (current.track.hasTime) setTime(playback.t); // keep the marker on the redrawn line
 }
 
 function fitCamera() {
@@ -241,7 +254,12 @@ function fitCamera() {
 }
 
 // ---------- Info panels ----------
+// Clock times are always shown in 24-hour format, whatever the browser locale.
+const TIME_FORMAT = { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' };
+const DATE_TIME_FORMAT = { year: 'numeric', month: 'numeric', day: 'numeric', ...TIME_FORMAT };
+
 function formatDuration(s) {
+  s = Math.round(s);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = Math.round(s % 60);
@@ -255,7 +273,7 @@ function escapeHtml(s) {
 function showInfo(gpx, filename) {
   const s = gpx.stats;
   const rows = [['Distance', `${(s.distance / 1000).toFixed(2)} km`]];
-  if (s.startTime !== null) rows.push(['Start', new Date(s.startTime).toLocaleString()]);
+  if (s.startTime !== null) rows.push(['Start', new Date(s.startTime).toLocaleString(undefined, DATE_TIME_FORMAT)]);
   if (s.duration !== null) {
     rows.push(['Duration', formatDuration(s.duration)]);
     if (s.distance > 0) {
@@ -291,6 +309,88 @@ function saveScreenshot() {
   a.download = `${current?.gpx.name || 'gpx-plotter'}.png`;
   a.click();
 }
+
+/** Offer only the colouring modes the loaded file has data for. */
+function setColorModes(hasTime) {
+  const modes = hasTime ? COLOR_MODES : COLOR_MODES.filter((m) => !TIME_COLOR_MODES.includes(m));
+  colorModeCtrl.options(modes);
+  settings.colorMode = modes.includes(preferredColorMode) ? preferredColorMode : 'Elevation';
+  colorModeCtrl.updateDisplay();
+}
+
+function showNoTimeNotice(filename) {
+  $('notice-file').textContent = filename;
+  $('notice').showModal();
+}
+
+// ---------- Timeline / playback ----------
+const timelineEl = $('timeline');
+const playButton = $('play');
+const stopButton = $('stop');
+const timeSlider = $('time-slider');
+const speedSelect = $('play-speed');
+const playback = { t: 0, playing: false };
+
+/** Move the marker to `t` seconds from the start and refresh the readout. */
+function setTime(t) {
+  const track = current?.track;
+  if (!track?.hasTime) return;
+  playback.t = Math.min(track.duration, Math.max(0, t));
+  const s = track.setPosition(playback.t);
+  timeSlider.value = playback.t;
+  $('time-abs').textContent = new Date(s.time).toLocaleTimeString(undefined, TIME_FORMAT);
+  $('time-rel').textContent = formatDuration(s.elapsed);
+  $('time-dist').textContent = `${(s.dist / 1000).toFixed(2)} km`;
+  $('time-speed').textContent = s.speed !== null ? `${s.speed.toFixed(1)} km/h` : '–';
+}
+
+function setPlaying(on) {
+  playback.playing = on;
+  playButton.disabled = on;
+  stopButton.disabled = !on;
+}
+
+function advancePlayback(dt) {
+  const track = current?.track;
+  if (!track?.hasTime) return setPlaying(false);
+  setTime(playback.t + dt * Number(speedSelect.value));
+  if (playback.t >= track.duration) setPlaying(false);
+}
+
+function play() {
+  if (!current?.track.hasTime) return;
+  if (playback.t >= current.track.duration) setTime(0); // replay from the start
+  setPlaying(true);
+}
+
+/** Called after a new GPX file has been loaded. */
+function resetTimeline() {
+  setPlaying(false);
+  const track = current.track;
+  timelineEl.hidden = !track.hasTime;
+  if (!track.hasTime) return;
+  timeSlider.max = Math.ceil(track.duration);
+  setTime(0);
+}
+
+playButton.addEventListener('click', (e) => {
+  e.currentTarget.blur();
+  play();
+});
+stopButton.addEventListener('click', (e) => {
+  e.currentTarget.blur();
+  setPlaying(false);
+});
+timeSlider.addEventListener('input', () => setTime(Number(timeSlider.value)));
+
+// Space toggles play / stop (except while typing in a form field).
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' || timelineEl.hidden) return;
+  if (e.target.closest?.('input:not([type=range]), select, textarea, button')) return;
+  e.preventDefault();
+  if (playback.playing) setPlaying(false);
+  else play();
+});
 
 // ---------- File input ----------
 async function openFile(file) {
