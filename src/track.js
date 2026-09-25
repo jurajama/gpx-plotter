@@ -69,6 +69,66 @@ export class Track {
     );
     this.markerSize = r;
     this.group.add(this.startMarker, this.finishMarker);
+
+    // Timeline: points that carry a timestamp, in time order.
+    this.timed = all.filter((p) => p.elapsed !== null);
+    this.duration = this.timed.length >= 2 ? this.timed[this.timed.length - 1].elapsed : 0;
+
+    // Current-position marker: a ball on a thin pin, so it is visible from any angle.
+    this.positionMarker = new THREE.Group();
+    const ballMaterial = new THREE.MeshStandardMaterial({ color: '#ffb400', emissive: '#5a3a00' });
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(r * 1.4, 24, 16), ballMaterial);
+    ball.position.y = r * 4.5;
+    const pin = new THREE.Mesh(
+      new THREE.CylinderGeometry(r * 0.15, r * 0.15, r * 4.5, 8),
+      new THREE.MeshStandardMaterial({ color: '#333' })
+    );
+    pin.position.y = r * 2.25;
+    this.positionMarker.add(ball, pin);
+    this.positionMarker.visible = false;
+    this.group.add(this.positionMarker);
+  }
+
+  get hasTime() {
+    return this.duration > 0;
+  }
+
+  /**
+   * Interpolated state at `elapsed` seconds from the start:
+   * { x, y, z, time (ms), elapsed, dist, speed }. Requires update() to have run.
+   */
+  stateAt(elapsed) {
+    const pts = this.timed;
+    elapsed = Math.min(this.duration, Math.max(0, elapsed));
+    let lo = 0;
+    let hi = pts.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (pts[mid].elapsed <= elapsed) lo = mid;
+      else hi = mid;
+    }
+    const a = pts[lo];
+    const b = pts[hi];
+    const span = b.elapsed - a.elapsed;
+    const f = span > 0 ? Math.min(1, Math.max(0, (elapsed - a.elapsed) / span)) : 0;
+    const lerp = (u, v) => u + (v - u) * f;
+    return {
+      x: lerp(a.x, b.x),
+      y: lerp(this.yOf(a), this.yOf(b)),
+      z: lerp(a.z, b.z),
+      time: lerp(a.time, b.time),
+      elapsed,
+      dist: lerp(a.dist, b.dist),
+      speed: a.speed !== null && b.speed !== null ? lerp(a.speed, b.speed) : null,
+    };
+  }
+
+  /** Move the position marker to `elapsed` seconds; returns the state there. */
+  setPosition(elapsed) {
+    const s = this.stateAt(elapsed);
+    this.positionMarker.position.set(s.x, s.y, s.z);
+    this.positionMarker.visible = true;
+    return s;
   }
 
   /**
@@ -84,6 +144,7 @@ export class Track {
       const h = useGps && p.ele !== null ? p.ele + this.gpsOffset : p.ground;
       return terrain.sceneY(h, exaggeration) + LIFT;
     };
+    this.yOf = yOf;
 
     const value = {
       Speed: (p) => p.speed,
@@ -151,7 +212,7 @@ export class Track {
   dispose() {
     for (const line of this.lines) line.geometry.dispose();
     this.material.dispose();
-    for (const m of [this.startMarker, this.finishMarker]) {
+    for (const m of [this.startMarker, this.finishMarker, ...this.positionMarker.children]) {
       m.geometry.dispose();
       m.material.dispose();
     }

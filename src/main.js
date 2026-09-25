@@ -50,7 +50,10 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 
+const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  if (playback.playing) advancePlayback(dt);
   controls.update();
   compassEl.style.transform = `rotate(${controls.getAzimuthalAngle()}rad)`;
   renderer.render(scene, camera);
@@ -188,6 +191,7 @@ async function loadGpxText(text, filename) {
   updateTrack();
   fitCamera();
   showInfo(gpx, filename);
+  resetTimeline();
   dropEl.hidden = true;
 
   await applyMap();
@@ -227,6 +231,7 @@ function updateTrack() {
   if (!current) return;
   const legend = current.track.update({ terrain: current.terrain, ...settings });
   showLegend(legend);
+  if (current.track.hasTime) setTime(playback.t); // keep the marker on the redrawn line
 }
 
 function fitCamera() {
@@ -242,6 +247,7 @@ function fitCamera() {
 
 // ---------- Info panels ----------
 function formatDuration(s) {
+  s = Math.round(s);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = Math.round(s % 60);
@@ -291,6 +297,77 @@ function saveScreenshot() {
   a.download = `${current?.gpx.name || 'gpx-plotter'}.png`;
   a.click();
 }
+
+// ---------- Timeline / playback ----------
+const timelineEl = $('timeline');
+const playButton = $('play');
+const stopButton = $('stop');
+const timeSlider = $('time-slider');
+const speedSelect = $('play-speed');
+const playback = { t: 0, playing: false };
+
+const timeFormat = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+
+/** Move the marker to `t` seconds from the start and refresh the readout. */
+function setTime(t) {
+  const track = current?.track;
+  if (!track?.hasTime) return;
+  playback.t = Math.min(track.duration, Math.max(0, t));
+  const s = track.setPosition(playback.t);
+  timeSlider.value = playback.t;
+  $('time-abs').textContent = new Date(s.time).toLocaleTimeString(undefined, timeFormat);
+  $('time-rel').textContent = formatDuration(s.elapsed);
+  $('time-dist').textContent = `${(s.dist / 1000).toFixed(2)} km`;
+  $('time-speed').textContent = s.speed !== null ? `${s.speed.toFixed(1)} km/h` : '–';
+}
+
+function setPlaying(on) {
+  playback.playing = on;
+  playButton.disabled = on;
+  stopButton.disabled = !on;
+}
+
+function advancePlayback(dt) {
+  const track = current?.track;
+  if (!track?.hasTime) return setPlaying(false);
+  setTime(playback.t + dt * Number(speedSelect.value));
+  if (playback.t >= track.duration) setPlaying(false);
+}
+
+function play() {
+  if (!current?.track.hasTime) return;
+  if (playback.t >= current.track.duration) setTime(0); // replay from the start
+  setPlaying(true);
+}
+
+/** Called after a new GPX file has been loaded. */
+function resetTimeline() {
+  setPlaying(false);
+  const track = current.track;
+  timelineEl.hidden = !track.hasTime;
+  if (!track.hasTime) return;
+  timeSlider.max = Math.ceil(track.duration);
+  setTime(0);
+}
+
+playButton.addEventListener('click', (e) => {
+  e.currentTarget.blur();
+  play();
+});
+stopButton.addEventListener('click', (e) => {
+  e.currentTarget.blur();
+  setPlaying(false);
+});
+timeSlider.addEventListener('input', () => setTime(Number(timeSlider.value)));
+
+// Space toggles play / stop (except while typing in a form field).
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' || timelineEl.hidden) return;
+  if (e.target.closest?.('input:not([type=range]), select, textarea, button')) return;
+  e.preventDefault();
+  if (playback.playing) setPlaying(false);
+  else play();
+});
 
 // ---------- File input ----------
 async function openFile(file) {

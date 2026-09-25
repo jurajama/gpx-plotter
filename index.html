@@ -21,7 +21,15 @@
     #info { top: 10px; left: 10px; max-width: 280px; }
     #info h1 { font-size: 14px; margin: 0 0 6px; overflow-wrap: anywhere; }
     #info th { text-align: left; font-weight: 500; color: #555; padding-right: 12px; }
-    #legend { bottom: 28px; left: 10px; width: 220px; }
+    #legend { bottom: 112px; left: 10px; width: 220px; }
+    #timeline { bottom: 28px; left: 10px; right: 70px; max-width: 900px; display: flex; flex-direction: column; gap: 6px; }
+    #timeline .row { display: flex; align-items: center; gap: 8px; }
+    #timeline button { font: inherit; min-width: 72px; padding: 4px 10px; cursor: pointer; }
+    #timeline button:disabled { cursor: default; opacity: 0.5; }
+    #time-slider { flex: 1; min-width: 80px; accent-color: #d08a00; }
+    #timeline .readout { display: flex; flex-wrap: wrap; gap: 4px 18px; font-variant-numeric: tabular-nums; }
+    #timeline .readout b { font-weight: 600; }
+    #timeline label { white-space: nowrap; }
     .legend-title { margin-bottom: 4px; }
     .legend-bar { height: 10px; border-radius: 3px; }
     .legend-labels { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
@@ -53,6 +61,31 @@
 
   <div id="info" class="panel" hidden></div>
   <div id="legend" class="panel" hidden></div>
+  <div id="timeline" class="panel" hidden>
+    <div class="row">
+      <button id="play" title="Play (space)">▶ Play</button>
+      <button id="stop" title="Stop (space)" disabled>■ Stop</button>
+      <input id="time-slider" type="range" min="0" max="1" step="1" value="0" aria-label="Position in time">
+      <label>Speed
+        <select id="play-speed">
+          <option value="1">1×</option>
+          <option value="5">5×</option>
+          <option value="10">10×</option>
+          <option value="30">30×</option>
+          <option value="60" selected>60×</option>
+          <option value="120">120×</option>
+          <option value="300">300×</option>
+          <option value="600">600×</option>
+        </select>
+      </label>
+    </div>
+    <div class="readout">
+      <span>Time <b id="time-abs">–</b></span>
+      <span>Elapsed <b id="time-rel">–</b></span>
+      <span>Distance <b id="time-dist">–</b></span>
+      <span>Speed <b id="time-speed">–</b></span>
+    </div>
+  </div>
   <div id="status" class="panel" hidden></div>
   <div id="compass" title="North (click to reset view)">
     <svg viewBox="0 0 44 44">
