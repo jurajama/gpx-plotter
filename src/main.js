@@ -7,7 +7,7 @@ import { LocalFrame, lonLatToMerc, mercToPixels } from './geo.js';
 import { parseGpx } from './gpx.js';
 import { MAP_SOURCES, DEM_SOURCE, renderMap, loadElevation } from './tiles.js';
 import { Terrain } from './terrain.js';
-import { Track, COLOR_MODES, GRADIENT } from './track.js';
+import { Track, COLOR_MODES } from './track.js';
 
 // ---------- DOM ----------
 const $ = (id) => document.getElementById(id);
@@ -280,7 +280,7 @@ function showLegend(legend) {
   const digits = legend.max - legend.min < 10 ? 1 : 0;
   legendEl.innerHTML =
     `<div class="legend-title">${settings.colorMode} (${legend.unit})</div>` +
-    `<div class="legend-bar" style="background:linear-gradient(to right, ${GRADIENT.join(',')})"></div>` +
+    `<div class="legend-bar" style="background:linear-gradient(to right, ${legend.gradient.join(',')})"></div>` +
     `<div class="legend-labels"><span>${legend.min.toFixed(digits)}</span><span>${legend.max.toFixed(digits)}</span></div>`;
   legendEl.hidden = false;
 }

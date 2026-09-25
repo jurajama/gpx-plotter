@@ -6,14 +6,15 @@ import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { lonLatToMerc } from './geo.js';
 
-// Blue -> cyan -> green -> yellow -> red; also used for the CSS legend.
-export const GRADIENT = ['#2b50d8', '#1fc0d8', '#3ccf4e', '#f2d21b', '#e3262b'];
-const GRADIENT_COLORS = GRADIENT.map((c) => new THREE.Color(c));
+// Colour stops from low to high value; also used for the CSS legend.
+const DEFAULT_GRADIENT = ['#2b50d8', '#1fc0d8', '#3ccf4e', '#f2d21b', '#e3262b'];
+// Speed: red = slow, blue = medium, green = fast.
+const SPEED_GRADIENT = ['#d61f1f', '#8a3fc0', '#2a62e0', '#139fb0', '#12a82e'];
 
-function gradientColor(t, out) {
-  t = Math.min(1, Math.max(0, t)) * (GRADIENT_COLORS.length - 1);
-  const i = Math.min(GRADIENT_COLORS.length - 2, Math.floor(t));
-  return out.copy(GRADIENT_COLORS[i]).lerp(GRADIENT_COLORS[i + 1], t - i);
+function gradientColor(stops, t, out) {
+  t = Math.min(1, Math.max(0, t)) * (stops.length - 1);
+  const i = Math.min(stops.length - 2, Math.floor(t));
+  return out.set(stops[i]).lerp(new THREE.Color(stops[i + 1]), t - i);
 }
 
 function percentile(sorted, p) {
@@ -74,7 +75,7 @@ export class Track {
    * Rebuild line geometry.
    * @param opts { terrain, exaggeration, heightMode: 'Terrain'|'Recorded altitude',
    *               colorMode, solidColor, lineWidth, onTop }
-   * @returns legend { min, max, unit } or null for solid colour
+   * @returns legend { min, max, unit, gradient } or null for solid colour
    */
   update(opts) {
     const { terrain, exaggeration } = opts;
@@ -103,7 +104,8 @@ export class Track {
         max = percentile(vals, 1 - clip);
         if (max - min < 1e-6) max = min + 1;
         const unit = { Speed: 'km/h', 'Elapsed time': 'min', Elevation: 'm' }[opts.colorMode];
-        legend = { min, max, unit };
+        const gradient = opts.colorMode === 'Speed' ? SPEED_GRADIENT : DEFAULT_GRADIENT;
+        legend = { min, max, unit, gradient };
       }
     }
 
@@ -115,7 +117,7 @@ export class Track {
       for (const p of seg) {
         positions.push(p.x, yOf(p), p.z);
         const v = value ? value(p) : null;
-        if (legend && v !== null && Number.isFinite(v)) gradientColor((v - min) / (max - min), c);
+        if (legend && v !== null && Number.isFinite(v)) gradientColor(legend.gradient, (v - min) / (max - min), c);
         else c.copy(solid);
         colors.push(c.r, c.g, c.b);
       }
