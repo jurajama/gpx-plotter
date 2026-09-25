@@ -89,7 +89,13 @@ mapFolder.add(settings, 'exaggeration', 1, 10, 0.1).name('Vertical exaggeration'
 mapFolder.add(settings, 'shaded').name('Hill shading').onChange((v) => current?.terrain.setShaded(v));
 mapFolder.add(settings, 'wireframe').name('Wireframe').onChange((v) => current?.terrain.setWireframe(v));
 const routeFolder = gui.addFolder('Route');
-routeFolder.add(settings, 'colorMode', COLOR_MODES).name('Colour by').onChange(() => updateTrack());
+// Colouring modes that need timestamps; hidden for GPX files without them.
+const TIME_COLOR_MODES = ['Speed', 'Elapsed time'];
+let preferredColorMode = settings.colorMode; // last mode the user picked
+const colorModeCtrl = routeFolder.add(settings, 'colorMode', COLOR_MODES).name('Colour by').onChange((v) => {
+  preferredColorMode = v;
+  updateTrack();
+});
 routeFolder.addColor(settings, 'solidColor').name('Solid colour').onChange(() => updateTrack());
 routeFolder.add(settings, 'lineWidth', 1, 12, 0.5).name('Line width (px)').onChange(() => updateTrack());
 routeFolder.add(settings, 'heightMode', ['Terrain', 'Recorded altitude']).name('Height from').onChange(() => updateTrack());
@@ -188,11 +194,13 @@ async function loadGpxText(text, filename) {
   scene.add(next.terrain.mesh, next.track.group);
   camera.far = next.size * 20;
   resize();
+  setColorModes(next.track.hasTime);
   updateTrack();
   fitCamera();
   showInfo(gpx, filename);
   resetTimeline();
   dropEl.hidden = true;
+  if (!next.track.hasTime) showNoTimeNotice(filename);
 
   await applyMap();
 }
@@ -300,6 +308,19 @@ function saveScreenshot() {
   a.href = renderer.domElement.toDataURL('image/png');
   a.download = `${current?.gpx.name || 'gpx-plotter'}.png`;
   a.click();
+}
+
+/** Offer only the colouring modes the loaded file has data for. */
+function setColorModes(hasTime) {
+  const modes = hasTime ? COLOR_MODES : COLOR_MODES.filter((m) => !TIME_COLOR_MODES.includes(m));
+  colorModeCtrl.options(modes);
+  settings.colorMode = modes.includes(preferredColorMode) ? preferredColorMode : 'Elevation';
+  colorModeCtrl.updateDisplay();
+}
+
+function showNoTimeNotice(filename) {
+  $('notice-file').textContent = filename;
+  $('notice').showModal();
 }
 
 // ---------- Timeline / playback ----------

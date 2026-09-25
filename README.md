@@ -28,7 +28,9 @@ Timeline (bottom): drag the slider to move the position marker along the route
 in time. The readout shows the clock time, time elapsed since the start,
 distance and speed at that moment. *Play* / *Stop* (or the space bar) run the
 marker automatically; *Speed* sets the playback rate (1×–600× real time).
-Shown only for GPX files that contain timestamps.
+Shown only for GPX files that contain timestamps. Files without timestamps (for
+example a plain GPX route export) still load and show the route, but the app
+notes that the "GPX workout" export format is needed for time and speed data.
 
 Settings panel: map source, map zoom level, vertical exaggeration, hill shading,
 route colouring (solid, speed, elapsed time, elevation), line width, route height
