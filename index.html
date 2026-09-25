@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GPX Plotter 3D</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+        "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.20.0/dist/lil-gui.esm.min.js"
+      }
+    }
+  </script>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; font: 13px/1.4 system-ui, sans-serif; color: #222; }
+    #viewport { position: absolute; inset: 0; }
+    .panel { position: absolute; background: rgba(255, 255, 255, 0.88); border-radius: 6px;
+             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); padding: 8px 10px; }
+    #info { top: 10px; left: 10px; max-width: 280px; }
+    #info h1 { font-size: 14px; margin: 0 0 6px; overflow-wrap: anywhere; }
+    #info th { text-align: left; font-weight: 500; color: #555; padding-right: 12px; }
+    #legend { bottom: 28px; left: 10px; width: 220px; }
+    .legend-title { margin-bottom: 4px; }
+    .legend-bar { height: 10px; border-radius: 3px; }
+    .legend-labels { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+    #status { top: 10px; left: 50%; transform: translateX(-50%); }
+    #attribution { position: absolute; right: 0; bottom: 0; font-size: 11px; padding: 2px 6px;
+                   background: rgba(255, 255, 255, 0.75); }
+    #attribution a { color: #246; }
+    #compass { position: absolute; right: 14px; bottom: 34px; width: 44px; height: 44px; border-radius: 50%;
+               background: rgba(255, 255, 255, 0.88); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); cursor: pointer; }
+    #compass svg { width: 100%; height: 100%; }
+    #drop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    #drop .box { text-align: center; padding: 32px 40px; border: 2px dashed #7890a8; border-radius: 12px;
+                 background: rgba(255, 255, 255, 0.85); }
+    #drop button { font: inherit; padding: 6px 14px; margin-top: 10px; cursor: pointer; }
+    body.dragging #viewport { outline: 4px dashed #4a7bd0; outline-offset: -8px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="viewport"></div>
+
+  <div id="drop">
+    <div class="box">
+      <div style="font-size: 16px; font-weight: 600;">GPX Plotter 3D</div>
+      <div>Drop a GPX file here, or</div>
+      <button id="open-button">Open GPX file…</button>
+    </div>
+  </div>
+
+  <div id="info" class="panel" hidden></div>
+  <div id="legend" class="panel" hidden></div>
+  <div id="status" class="panel" hidden></div>
+  <div id="compass" title="North (click to reset view)">
+    <svg viewBox="0 0 44 44">
+      <polygon points="22,5 27,22 17,22" fill="#d22" />
+      <polygon points="22,39 27,22 17,22" fill="#999" />
+    </svg>
+  </div>
+  <div id="attribution"></div>
+  <input id="file" type="file" accept=".gpx,application/gpx+xml" hidden>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
