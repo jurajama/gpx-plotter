@@ -72,12 +72,17 @@ const settings = {
   shaded: true,
   wireframe: false,
   openFile: () => $('file').click(),
+  openUrl: () => {
+    const url = prompt('HTTPS address of a GPX file:');
+    if (url?.trim()) openUrl(url.trim());
+  },
   resetView: () => fitCamera(),
   screenshot: () => saveScreenshot(),
 };
 
 const gui = new GUI({ title: 'Settings' });
 gui.add(settings, 'openFile').name('Open GPX file…');
+gui.add(settings, 'openUrl').name('Open GPX URL…');
 const mapFolder = gui.addFolder('Map');
 mapFolder.add(settings, 'mapSource', Object.keys(MAP_SOURCES)).name('Source').onChange(() => {
   settings.mapZoom = autoZoom();
@@ -418,17 +423,42 @@ window.addEventListener('drop', (e) => {
   if (file) openFile(file);
 });
 
+// ---------- URL input ----------
+// Fetches a GPX file from a web address, e.g. a Sports Tracker / Suunto
+// workout export link. The server must allow cross-origin requests (CORS).
+async function openUrl(url) {
+  setStatus(`Fetching ${url}…`);
+  let text;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    text = await r.text();
+  } catch (e) {
+    const hint = e instanceof TypeError ? ' (network error, or the server does not allow cross-origin requests)' : '';
+    setStatus(`Could not fetch ${url}: ${e.message}${hint}`);
+    return;
+  }
+  loadGpxText(text, url);
+}
+
+$('url-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  openUrl($('url-input').value.trim());
+});
+
+// Pasting a URL anywhere on the page (outside input fields) loads it.
+window.addEventListener('paste', (e) => {
+  if (e.target.closest?.('input, textarea')) return;
+  const text = e.clipboardData.getData('text').trim();
+  if (/^https?:\/\/\S+$/i.test(text)) {
+    e.preventDefault();
+    openUrl(text);
+  }
+});
+
 resize();
 
-// Optional: ?gpx=path/to/file.gpx loads a file served by the local web server.
+// Optional: ?gpx=<path or URL> loads a file served by the local web server or
+// fetched from a web address.
 const gpxParam = new URLSearchParams(location.search).get('gpx');
-if (gpxParam) {
-  setStatus(`Fetching ${gpxParam}…`);
-  fetch(gpxParam)
-    .then((r) => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.text();
-    })
-    .then((text) => loadGpxText(text, gpxParam))
-    .catch((e) => setStatus(`Could not fetch ${gpxParam}: ${e.message}`));
-}
+if (gpxParam) openUrl(gpxParam);

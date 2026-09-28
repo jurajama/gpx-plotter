@@ -33,7 +33,7 @@
     .legend-title { margin-bottom: 4px; }
     .legend-bar { height: 10px; border-radius: 3px; }
     .legend-labels { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
-    #status { top: 10px; left: 50%; transform: translateX(-50%); }
+    #status { top: 10px; left: 50%; transform: translateX(-50%); max-width: 80vw; overflow-wrap: anywhere; }
     #attribution { position: absolute; right: 0; bottom: 0; font-size: 11px; padding: 2px 6px;
                    background: rgba(255, 255, 255, 0.75); }
     #attribution a { color: #246; }
@@ -44,12 +44,14 @@
     #drop .box { text-align: center; padding: 32px 40px; border: 2px dashed #7890a8; border-radius: 12px;
                  background: rgba(255, 255, 255, 0.85); }
     #drop button { font: inherit; padding: 6px 14px; margin-top: 10px; cursor: pointer; }
+    #url-form { margin-top: 18px; }
+    #url-input { font: inherit; width: min(420px, 70vw); padding: 5px 8px; margin-top: 6px; display: block; }
     body.dragging #viewport { outline: 4px dashed #4a7bd0; outline-offset: -8px; }
     #notice { max-width: 440px; border: none; border-radius: 8px; padding: 18px 20px;
               box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35); font: inherit; color: inherit; }
     #notice::backdrop { background: rgba(0, 0, 0, 0.3); }
     #notice h2 { font-size: 15px; margin: 0 0 10px; }
-    #notice p { margin: 0 0 10px; }
+    #notice p { margin: 0 0 10px; overflow-wrap: anywhere; }
     #notice form { text-align: right; margin: 0; }
     #notice button { font: inherit; padding: 5px 18px; cursor: pointer; }
     [hidden] { display: none !important; }
@@ -63,6 +65,11 @@
       <div style="font-size: 16px; font-weight: 600;">GPX Plotter 3D</div>
       <div>Drop a GPX file here, or</div>
       <button id="open-button">Open GPX file…</button>
+      <form id="url-form">
+        <div>or load it from an HTTPS address:</div>
+        <input id="url-input" type="url" required placeholder="https://…" aria-label="GPX file URL">
+        <button type="submit">Load URL</button>
+      </form>
     </div>
   </div>
 
