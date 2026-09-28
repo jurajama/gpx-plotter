@@ -14,8 +14,16 @@ Open <http://localhost:8000> and drop a `.gpx` file on the page (or use
 *Open GPX file…*). A local web server is needed because browsers do not load
 JavaScript modules from `file://` pages.
 
-A GPX file inside this folder can also be opened directly:
-<http://localhost:8000/?gpx=my-run.gpx>
+A GPX file can also be loaded from an HTTPS address, for example a Sports
+Tracker / Suunto workout export link
+(`https://api.sports-tracker.com/apiserver/v1/workouts/export/…`): paste the
+address into the field on the start screen and press *Load URL*, use
+*Open GPX URL…* in the settings panel, or paste it anywhere on the page. The
+server must allow cross-origin requests (CORS); Sports Tracker does.
+
+A GPX file inside this folder, or at a web address, can also be opened directly:
+<http://localhost:8000/?gpx=my-run.gpx> or
+`http://localhost:8000/?gpx=<URL-encoded address>`
 
 ## Controls
 
